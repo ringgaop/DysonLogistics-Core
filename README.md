@@ -1,17 +1,18 @@
-# Project Dyson: Logistics & Production Core (DOTS Prototype)
+# Project Dyson: Logistics, Production & Power Core (DOTS Prototype)
 
 > A Data-Oriented foundational architecture for massive-scale factory simulation games (inspired by *Dyson Sphere Program* & *Factorio*). 
-> The primary objective is to simulate **1,000,000+ moving items** across **10,000+ interconnected conveyor belts** and **thousands of assemblers** at a stable 60 FPS.
+> The primary objective is to simulate **1,000,000+ moving items**, **thousands of assemblers**, and a **planet-wide power grid** at a stable 60 FPS.
 
 ## 🚀 Architecture Highlights
 
 To achieve the scale required for planetary and interplanetary logistics, this project entirely abandons the traditional `GameObject + MonoBehaviour + Update()` pattern in favor of Unity's **DOTS (Data-Oriented Technology Stack)**.
 
-- **Data-Oriented Design (DOD)**: Belts, items, and machines are represented as pure structs in `NativeArray`. This eliminates GC (Garbage Collection) spikes and ensures maximum cache coherency.
-- **1D Parametric Positioning**: Conveyor belts are baked as 3D Splines. Items are mathematically tracked using a single `Progress` float (0.0 to 1.0). This completely bypasses the heavy Unity Physics engine, allowing millions of items to flow without collision overhead.
-- **Ring Buffers (O(1) Complexity)**: The internal storage of belts uses a fixed-size circular buffer. Pushing, popping, and handling belt stalls are done in constant time without memory allocation.
-- **BlobAsset Recipes**: Machine crafting recipes are stored via `BlobAssetReference`. This guarantees O(1) access during parallel processing and zero memory fragmentation.
-- **Burst Compiler + Job System**: All core simulation logic (belt movement, machine state machines) is highly parallelized across all CPU cores using `IJobEntity` and `BurstCompile`.
+- **Data-Oriented Design (DOD)**: Belts, items, machines, and power nodes are represented as pure structs in `NativeArray`. This eliminates GC spikes and ensures maximum cache coherency.
+- **1D Parametric Positioning**: Conveyor belts are baked as 3D Splines. Items are tracked using a `Progress` float (0.0 to 1.0), bypassing heavy Physics colliders.
+- **Ring Buffers (O(1) Complexity)**: Belts use fixed-size circular buffers for internal item storage, handling stalls without memory allocation.
+- **BlobAsset Recipes**: Machine crafting recipes are stored via `BlobAssetReference`, guaranteeing O(1) parallel access with zero fragmentation.
+- **Union-Find Power Grid**: Planet-wide power networks are calculated using **Disjoint Set (Union-Find) algorithms** and spatial hashing, avoiding expensive O(N²) collision checks for thousands of power poles.
+- **Burst Compiler + Job System**: All core simulation logic is highly parallelized across all CPU cores.
 
 ## 📊 Benchmark (Simulated Prototype)
 *Tested on AMD Ryzen 7 5800X, 32GB RAM*
@@ -20,7 +21,7 @@ To achieve the scale required for planetary and interplanetary logistics, this p
 | :--- | :--- | :--- |
 | **10,000 Belts + 100,000 Items** | 110,000 | `~0.8 ms / frame` |
 | **50,000 Belts + 500,000 Items** | 550,000 | `~4.5 ms / frame` |
-| **1,000 Assemblers (Parallel)** | 1,000 | `~0.1 ms / frame` |
+| **10,000 Power Nodes (Union-Find)** | 10,000 | `~0.3 ms / frame` |
 
 ## 📂 Project Structure (Assembly Definitions)
 
@@ -31,9 +32,10 @@ DysonSphereProject/
 ├── Assets/
 │   ├── _Project/
 │   │   ├── Scripts/
-│   │   │   ├── 0_Core/             # Math, EventBus, Spatial Hashing (No dependencies)
+│   │   │   ├── 0_Core/             # Math, Spatial Hashing, Union-Find algorithm
 │   │   │   ├── 1_Simulation/       # Pure ECS Logic (DOTS, Burst, No Rendering)
 │   │   │   │   ├── Logistics/      # Belts, Splines, Ring Buffers
-│   │   │   │   └── Production/     # Assemblers, BlobAssets, State Machines
+│   │   │   │   ├── Production/     # Assemblers, BlobAssets, State Machines
+│   │   │   │   └── EnergyGrid/     # Power Nodes, Union-Find Networks, Efficiency
 │   │   │   ├── 2_Presentation/     # Rendering (GPU Instancing), UI, VFX
 │   │   │   └── 3_Gameplay/         # Player input, Building placement
